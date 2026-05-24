@@ -16,24 +16,40 @@
 
     spans.forEach(span => {
       const text = span.textContent.trim();
+      const regex_estagio = /Estágio|Estagio|Estagiário|Estagiario/i;
+      const regex_assistente = /Assistente/i;
+      
+      if (text.length > 150) {
+        return;
+      }
 
-      if (text.includes("Estágio")) {
-        span.style.setProperty("color", "red", "important");
+      if (regex_estagio.test(text)) {
+        span.style.setProperty("color", "#00FF19", "important");
+      } else if (regex_assistente.test(text)) {
+        span.style.setProperty("color", "#FFF200", "important");
       }
     });
+
+    const mainDiv = document.querySelector("[componentkey='SearchResultsMainContent']");
+
+    mainDiv.querySelectorAll("hr").forEach(hr => {
+      hr.style.setProperty("display", "none", "important");
+    })
+
+    // console.log(mainDiv.querySelectorAll(":scope > *"))
   }
 
-  // roda uma vez
+  
   highlight();
 
-  // roda novamente quando o DOM mudar
+  // Cria observador que vigia o DOM e roda uma função quando algo muda
   const observer = new MutationObserver(() => {
     highlight();
   });
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
+  observer.observe(document.body, { // Starta observação do body
+    childList: true, // Detecta elementos adicionados ou removidos
+    subtree: true // Observa elementos internos
   });
 
 })();
