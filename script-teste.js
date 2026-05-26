@@ -36,8 +36,6 @@
   function getJobsDiv() {
     const jobsDiv = document.querySelector("[componentkey='SearchResultsMainContent']");
 
-    jobsDiv.style.display = "none";
-
     return jobsDiv; 
   }
 
@@ -76,7 +74,7 @@
   }
 
   function getSpanOfElement(element) {
-    return element.querySelector("span[aria-hidden='true']");
+    return element.querySelectorAll("span[aria-hidden='true']");
   }
 
   function getTextOfSpan(span) {
@@ -98,23 +96,28 @@
 
     elements.forEach((element, index) => {
       const span = getSpanOfElement(element);
-      const text = getTextOfSpan(span);
-      const time = getTimeOfText(text);
 
-      const hourRegex = /hora|horas/i
-      const minuteRegex = /minuto|minutos/i
+      span.forEach(span => {
 
-      if (hourRegex.test(text)) {
-        jobsSortedByHourList.push({
-          index : index,
-          time : Number(time[0])
-        })
-      } else if (minuteRegex.test(text)) {
-        jobsSortedByMinuteList.push({
-          index : index,
-          time : Number(time[0])
-        })
-      }
+        const text = getTextOfSpan(span);
+        const time = getTimeOfText(text);
+
+        const hourRegex = /hora|horas/i
+        const minuteRegex = /minuto|minutos/i
+
+        if (hourRegex.test(text)) {
+          jobsSortedByHourList.push({
+            index : index,
+            time : Number(time[0])
+          })
+        } else if (minuteRegex.test(text)) {
+          jobsSortedByMinuteList.push({
+            index : index,
+            time : Number(time[0])
+          })
+        }
+
+      })
 
     })
 
@@ -139,6 +142,12 @@
 
   function main() {
     const jobsDiv = getJobsDiv();
+
+    if (!jobsDiv) {
+      isRunning = false;
+      return;
+    }
+
     const jobsDivClone = getJobsDivClone(jobsDiv);
     const mainDiv = getMainDiv(jobsDiv);
     const elements = getElements(jobsDivClone);
@@ -146,44 +155,25 @@
 
     mockJobsDiv(mainDiv, jobsDivClone)
 
+    jobsDiv.style.display = "none"; 
+
     const sortedJobsDiv = getSortedJobDivs(elements)
 
-    jobsDivClone.innerHTML = "";
-
-    // observer.disconnect();
-
-    sortedJobsDiv.forEach(jobDiv => {
-      jobsDivClone.appendChild(jobDiv)
-      jobsDivClone.appendChild(hr)
-    })
-
-    // observer.observe(document.body, { childList: true, subtree: true });
+    jobsDivClone.replaceChildren(...sortedJobsDiv.flatMap(jobDiv => [jobDiv, hr.cloneNode(true)]));
   }
 
-  let debounceTimer = null;
   const observer = new MutationObserver(() => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(main, 500);
+    main()
   });
-
-
-
-
-  // // Cria observador que vigia o DOM e roda uma função quando algo muda
-  // const observer = new MutationObserver(() => {
-  //   // highlight();
-  //   main()
-  // });
-
-
   
-  // highlight();
-  main();
+  setTimeout(() => {
+    main();
 
-
-  observer.observe(document.body, { // Starta observação do body
-    childList: true, // Detecta elementos adicionados ou removidos
-    subtree: true // Observa elementos internos
-  });
+    const targetNode = document.querySelector("[componentkey='SearchResultsMainContent']").parentNode;
+    observer.observe(targetNode, {
+      childList: true,
+      subtree: false
+    });
+  }, 500);
 
 })();
