@@ -33,115 +33,152 @@
 
   }
 
-  var list = []
-
-  function t(index, spans) {
-    spans.forEach(span => {
-      const text = span.textContent.trim();
-      const numero = text.match(/[0-9]+/);
-      const hourRegex = /hora|horas/i
-
-      if (hourRegex.test(text)) {
-        list.push({
-          index : index,
-          hr : Number(numero[0])
-        })
-      }
-    })
-
-  }
-  function getJobsSortedByHour() {
-
-  }
-  
   function getJobsDiv() {
-    return mainDiv = document.querySelector("[componentkey='SearchResultsMainContent']");
+    const jobsDiv = document.querySelector("[componentkey='SearchResultsMainContent']");
+
+    jobsDiv.style.display = "none";
+
+    return jobsDiv; 
   }
 
-  function getJobsDivClone() {
-    
+  function getMainDiv(jobsDiv) {
+    return jobsDiv.parentNode;
   }
 
-  function divSort() {
-    list = [];
-
-    const mainDiv = getJobsDiv();
-
-    mainDiv.style.display = "none";
-
+  function getJobsDivClone(jobsDiv) {
     const oldClone = document.querySelector("#clone");
 
     if (oldClone) {
       oldClone.remove();
     }
 
-    const mainDivClone = mainDiv.cloneNode(true);
+    const clone = jobsDiv.cloneNode(true);
 
-    mainDivClone.id = "clone"
-    
-    if (mainDivClone.style.display != "flex") {
-      mainDivClone.style.display = "flex";
+    clone.id = "clone"
+
+    if (clone.style.display != "flex") {
+      clone.style.display = "flex";
     }
 
-    mainDiv.parentNode.appendChild(mainDivClone)
-
-    const elements = mainDivClone.querySelectorAll(":scope > *");
-
-    const hr = elements[1]
-
-    elements.forEach((element, index) => {
-      const spans = element.querySelectorAll("span[aria-hidden='true']")
-
-      spans.forEach(span => {
-        const text = span.textContent.trim();
-        const numero = text.match(/[0-9]+/);
-        const hourRegex = /hora|horas/i
-
-        if (hourRegex.test(text)) {
-          list.push({
-            index : index,
-            hr : Number(numero[0])
-          })
-        }
-      })
-    })
-
-    list.sort((a, b) => a.hr - b.hr)
-
-    const jobsSortedByHour = []
-
-    list.forEach(element => {
-      jobsSortedByHour.push(elements[el.index])
-    })
-
-    mainDivClone.innerHTML = "";
-
-    observer.disconnect();
-
-    jobsSortedByHour.forEach(el => {
-      mainDivClone.appendChild(el)
-      mainDivClone.appendChild(hr)
-    })
-
-
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // mainDivClone.querySelectorAll("hr").forEach(hr => {
-    //   hr.style.setProperty("display", "none", "important");
-    // })
-    //
-    // console.log(mainDivClone.querySelectorAll(":scope > *"))
+    return clone;
   }
 
-  // Cria observador que vigia o DOM e roda uma função quando algo muda
+  function mockJobsDiv(mainDiv, jobsDivClone) {
+    mainDiv.appendChild(jobsDivClone)
+  }
+
+  function getElements(jobsDivClone) {
+    return jobsDivClone.querySelectorAll(":scope > *");
+  }
+
+  function getHr(elements) {
+    return elements[1];
+  }
+
+  function getSpanOfElement(element) {
+    return element.querySelector("span[aria-hidden='true']");
+  }
+
+  function getTextOfSpan(span) {
+    if (!span) {
+      return "";
+    }
+
+    return span.textContent.trim();
+  }
+
+  function getTimeOfText(text) {
+    return text.match(/[0-9]+/);
+  }
+
+  function getSortedJobDivs(elements) {
+    const jobsSortedByHourList = [];
+    const jobsSortedByMinuteList = [];
+    const allJobsDivsSortedList = []
+
+    elements.forEach((element, index) => {
+      const span = getSpanOfElement(element);
+      const text = getTextOfSpan(span);
+      const time = getTimeOfText(text);
+
+      const hourRegex = /hora|horas/i
+      const minuteRegex = /minuto|minutos/i
+
+      if (hourRegex.test(text)) {
+        jobsSortedByHourList.push({
+          index : index,
+          time : Number(time[0])
+        })
+      } else if (minuteRegex.test(text)) {
+        jobsSortedByMinuteList.push({
+          index : index,
+          time : Number(time[0])
+        })
+      }
+
+    })
+
+    if (jobsSortedByMinuteList.length > 0) {
+      jobsSortedByMinuteList.sort((a, b) => a.time - b.time)
+    }
+
+    if (jobsSortedByHourList.length > 0) {
+      jobsSortedByHourList.sort((a, b) => a.time - b.time)
+    }
+
+    
+    const allJobsSortedList = [...jobsSortedByMinuteList, ...jobsSortedByHourList];
+
+
+    allJobsSortedList.forEach(job => {
+      allJobsDivsSortedList.push(elements[job.index])
+    })
+
+    return allJobsDivsSortedList;
+  }
+
+  function main() {
+    const jobsDiv = getJobsDiv();
+    const jobsDivClone = getJobsDivClone(jobsDiv);
+    const mainDiv = getMainDiv(jobsDiv);
+    const elements = getElements(jobsDivClone);
+    const hr = getHr(elements)
+
+    mockJobsDiv(mainDiv, jobsDivClone)
+
+    const sortedJobsDiv = getSortedJobDivs(elements)
+
+    jobsDivClone.innerHTML = "";
+
+    // observer.disconnect();
+
+    sortedJobsDiv.forEach(jobDiv => {
+      jobsDivClone.appendChild(jobDiv)
+      jobsDivClone.appendChild(hr)
+    })
+
+    // observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  let debounceTimer = null;
   const observer = new MutationObserver(() => {
-    // highlight();
-    divSort()
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(main, 500);
   });
+
+
+
+
+  // // Cria observador que vigia o DOM e roda uma função quando algo muda
+  // const observer = new MutationObserver(() => {
+  //   // highlight();
+  //   main()
+  // });
+
+
   
   // highlight();
-  divSort();
+  main();
 
 
   observer.observe(document.body, { // Starta observação do body
